@@ -5,9 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Happy2018new/nemc-tan-lobby-solver/core/webrtc"
 	"strconv"
 	"strings"
+
+	"github.com/pion/webrtc/v4"
 )
 
 // Signaling implements an interface for sending and receiving Signals over a network.

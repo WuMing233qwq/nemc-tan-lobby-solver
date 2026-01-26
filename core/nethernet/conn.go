@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Happy2018new/nemc-tan-lobby-solver/core/webrtc"
 	"github.com/pion/ice/v4"
 	"github.com/pion/sdp/v3"
+	"github.com/pion/webrtc/v4"
 )
 
 // Conn is an implementation of [net.Conn] for a peer connection between a specific remote

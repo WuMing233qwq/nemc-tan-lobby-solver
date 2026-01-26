@@ -8,8 +8,8 @@ import (
 	"math/rand"
 	"strconv"
 
-	"github.com/Happy2018new/nemc-tan-lobby-solver/core/webrtc"
 	"github.com/pion/sdp/v3"
+	"github.com/pion/webrtc/v4"
 )
 
 // Dialer encapsulates options for establishing a connection with a NetherNet network through [Dialer.DialContext]

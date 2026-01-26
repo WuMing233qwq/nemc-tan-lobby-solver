@@ -1,6 +1,6 @@
 package nethernet
 
-import "github.com/Happy2018new/nemc-tan-lobby-solver/core/webrtc"
+import "github.com/pion/webrtc/v4"
 
 // Credentials holds the configuration for ICE servers used for gathering local ICE candidates.
 type Credentials struct {
