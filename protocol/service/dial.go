@@ -208,7 +208,7 @@ func (d *Dialer) DialContext(ctx context.Context) (conn net.Conn, authResp bunke
 	// At last we can connect to remote room
 	conn, err = nethernet.Dialer{}.DialContext(
 		ctx,
-		remoteNetherNetID,
+		fmt.Sprintf("%d", remoteNetherNetID),
 		wsConnection,
 	)
 	if err != nil {

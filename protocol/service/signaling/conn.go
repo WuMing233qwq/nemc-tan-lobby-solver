@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -93,10 +92,7 @@ func (c *Conn) read() {
 				c.Close(fmt.Errorf("read: %v", err))
 				return
 			}
-			if signal.NetworkID, err = strconv.ParseUint(message.From, 10, 64); err != nil {
-				c.Close(fmt.Errorf("read: %v", err))
-				return
-			}
+			signal.NetworkID = message.From
 			c.signals <- &signal
 		}
 	}
@@ -190,7 +186,7 @@ func (c *Conn) autoRefresh(refreshTime time.Duration) {
 func (c *Conn) Signal(signal *nethernet.Signal) error {
 	err := c.write(Message{
 		Type: MessageTypeClientSendSignal,
-		To:   json.Number(strconv.FormatUint(signal.NetworkID, 10)),
+		To:   json.Number(signal.NetworkID),
 		Data: signal.String(),
 	})
 	if err != nil {
@@ -240,8 +236,8 @@ func (c *Conn) Credentials(ctx context.Context) (*nethernet.Credentials, error) 
 
 // NetworkID returns the local network ID of Signaling. It is used by Listener to obtain its local
 // network ID.
-func (c *Conn) NetworkID() uint64 {
-	return c.dialer.NetherNetID
+func (c *Conn) NetworkID() string {
+	return fmt.Sprintf("%d", c.dialer.NetherNetID)
 }
 
 // PongData ..
