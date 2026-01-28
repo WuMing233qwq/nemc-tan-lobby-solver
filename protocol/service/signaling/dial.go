@@ -10,6 +10,7 @@ import (
 
 	"github.com/Happy2018new/nemc-tan-lobby-solver/bunker"
 	"github.com/coder/websocket"
+	"github.com/google/uuid"
 )
 
 const (
@@ -36,6 +37,16 @@ func (d Dialer) DialContext(
 		d.NetherNetID = fmt.Sprintf("%d", rand.Uint64())
 	}
 
+	opt := &websocket.DialOptions{
+		HTTPClient: new(http.Client),
+		HTTPHeader: make(http.Header),
+	}
+	opt.HTTPHeader.Set("Authorization", "NeteaseSignalingAuthToken")
+	opt.HTTPHeader.Set("Request-Id", uuid.New().String())
+	opt.HTTPHeader.Set("Session-Id", uuid.New().String())
+	opt.HTTPHeader.Set("Sec-WebSocket-Protocol", "")
+	opt.HTTPHeader.Set("User-Agent", "okhttp/3.10.0")
+
 	finalAddress := fmt.Sprintf(
 		"ws://%s/%s/%d/%s/%s",
 		serverBaseAddress,
@@ -44,15 +55,6 @@ func (d Dialer) DialContext(
 		base64.URLEncoding.EncodeToString(signalingSeed),
 		base64.URLEncoding.EncodeToString(signalingTicket),
 	)
-	opt := &websocket.DialOptions{
-		HTTPClient: new(http.Client),
-		HTTPHeader: make(http.Header),
-	}
-	opt.HTTPHeader.Set(
-		"Authorization",
-		"NeteaseSignalingAuthToken",
-	)
-
 	c, _, err := websocket.Dial(ctx, finalAddress, opt)
 	if err != nil {
 		return nil, err
