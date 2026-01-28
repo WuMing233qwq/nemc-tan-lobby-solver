@@ -22,7 +22,7 @@ type Dialer struct {
 	bunker.Authenticator
 	Options     *websocket.DialOptions
 	RefreshTime time.Duration
-	NetherNetID uint64
+	NetherNetID string
 }
 
 // DialContext ..
@@ -43,12 +43,12 @@ func (d Dialer) DialContext(
 		d.Options.HTTPHeader = make(http.Header)
 		d.Options.HTTPHeader.Set("Authorization", "NeteaseSignalingAuthToken")
 	}
-	if d.NetherNetID == 0 {
-		d.NetherNetID = rand.Uint64()
+	if len(d.NetherNetID) == 0 {
+		d.NetherNetID = fmt.Sprintf("%d", rand.Uint64())
 	}
 
 	finalAddress := fmt.Sprintf(
-		"ws://%s/%d/%d/%s/%s",
+		"ws://%s/%s/%d/%s/%s",
 		serverBaseAddress,
 		d.NetherNetID,
 		g79UserUID,

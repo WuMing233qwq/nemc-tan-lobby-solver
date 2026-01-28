@@ -21,7 +21,7 @@ import (
 type ListenConfig struct {
 	bunker.Authenticator
 	RoomConfig
-	serverNetherID    uint64
+	serverNetherID    string
 	raknetConnection  net.Conn
 	roomPlayerCount   atomic.Int32
 	netherNetListener *nethernet.Listener
@@ -213,7 +213,7 @@ func (l *ListenConfig) startTanLobbyRoom(ctx context.Context, enc *packet.Encode
 					ServerAddress:         "127.0.0.1|19132",
 					ServerRaknetGuid:      "",
 					RTCRoomID:             "",
-					NetherNetID:           fmt.Sprintf("%d", l.serverNetherID),
+					NetherNetID:           l.serverNetherID,
 					WebRTCCompressEnabled: true,
 				})
 			case *packet.TanLeaveRoomResponse:
@@ -251,7 +251,7 @@ func (l *ListenConfig) ListenContext(ctx context.Context) (listener *nethernet.L
 	// Prepare
 	var enc *packet.Encoder
 	var dec *packet.Decoder
-	l.serverNetherID = rand.Uint64()
+	l.serverNetherID = fmt.Sprintf("%d", rand.Uint64())
 
 	// Get room create info
 	tanLobbyCreateResp, err := l.Authenticator.GetCreate()

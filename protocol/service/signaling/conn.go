@@ -237,7 +237,7 @@ func (c *Conn) Credentials(ctx context.Context) (*nethernet.Credentials, error) 
 // NetworkID returns the local network ID of Signaling. It is used by Listener to obtain its local
 // network ID.
 func (c *Conn) NetworkID() string {
-	return fmt.Sprintf("%d", c.dialer.NetherNetID)
+	return c.dialer.NetherNetID
 }
 
 // PongData ..
