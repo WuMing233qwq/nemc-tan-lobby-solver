@@ -94,6 +94,7 @@ func (l *ListenConfig) createTanLobbyRoom(
 		Rand:       tanLobbyCreateResp.RaknetRand,
 		AESRand:    tanLobbyCreateResp.RaknetAESRand,
 		PlayerName: tanLobbyCreateResp.UserPlayerName,
+		Platform:   packet.PlatformMobile,
 	})
 	if err != nil {
 		_ = conn.Close()

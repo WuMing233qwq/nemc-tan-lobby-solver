@@ -88,6 +88,7 @@ func (d *Dialer) enterTanLobbyRoom(ctx context.Context, tanLobbyLoginResp bunker
 		Rand:       tanLobbyLoginResp.RaknetRand,
 		AESRand:    tanLobbyLoginResp.RaknetAESRand,
 		PlayerName: tanLobbyLoginResp.UserPlayerName,
+		Platform:   packet.PlatformMobile,
 	})
 	if err != nil {
 		return "", fmt.Errorf("enterTanLobbyRoom: %v", err)
