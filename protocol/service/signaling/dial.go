@@ -20,7 +20,6 @@ const (
 // Dialer ..
 type Dialer struct {
 	bunker.Authenticator
-	Options     *websocket.DialOptions
 	RefreshTime time.Duration
 	NetherNetID string
 }
@@ -33,16 +32,6 @@ func (d Dialer) DialContext(
 	signalingSeed []byte,
 	signalingTicket []byte,
 ) (*Conn, error) {
-	if d.Options == nil {
-		d.Options = &websocket.DialOptions{}
-	}
-	if d.Options.HTTPClient == nil {
-		d.Options.HTTPClient = &http.Client{}
-	}
-	if d.Options.HTTPHeader == nil {
-		d.Options.HTTPHeader = make(http.Header)
-		d.Options.HTTPHeader.Set("Authorization", "NeteaseSignalingAuthToken")
-	}
 	if len(d.NetherNetID) == 0 {
 		d.NetherNetID = fmt.Sprintf("%d", rand.Uint64())
 	}
@@ -55,7 +44,16 @@ func (d Dialer) DialContext(
 		base64.URLEncoding.EncodeToString(signalingSeed),
 		base64.URLEncoding.EncodeToString(signalingTicket),
 	)
-	c, _, err := websocket.Dial(ctx, finalAddress, d.Options)
+	opt := &websocket.DialOptions{
+		HTTPClient: new(http.Client),
+		HTTPHeader: make(http.Header),
+	}
+	opt.HTTPHeader.Set(
+		"Authorization",
+		"NeteaseSignalingAuthToken",
+	)
+
+	c, _, err := websocket.Dial(ctx, finalAddress, opt)
 	if err != nil {
 		return nil, err
 	}
