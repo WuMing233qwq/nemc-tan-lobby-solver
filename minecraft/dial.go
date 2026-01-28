@@ -12,27 +12,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	mathRand "math/rand"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/Happy2018new/nemc-tan-lobby-solver/minecraft/internal"
 	"github.com/Happy2018new/nemc-tan-lobby-solver/minecraft/protocol"
 	"github.com/Happy2018new/nemc-tan-lobby-solver/minecraft/protocol/login"
 	"github.com/Happy2018new/nemc-tan-lobby-solver/minecraft/protocol/packet"
-	"github.com/go-jose/go-jose/v3/jwt"
+
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/google/uuid"
 )
 
 // Dialer allows specifying specific settings for connection to a Minecraft server.
 // The zero value of Dialer is used for the package level Dial function.
 type Dialer struct {
-	// ErrorLog is a log.Logger that errors that occur during packet handling of servers are written to. By
-	// default, ErrorLog is set to one equal to the global logger.
-	ErrorLog *log.Logger
+	// ErrorLog is a log.Logger that errors that occur during packet handling of
+	// servers are written to. By default, errors are not logged.
+	ErrorLog *slog.Logger
 
 	// ClientData is the client data used to login to the server with. It includes fields such as the skin,
 	// locale and UUIDs unique to the client. If empty, a default is sent produced using defaultClientData().
@@ -102,8 +104,9 @@ func (d Dialer) DialContext(ctx context.Context, netConn net.Conn) (*Conn, error
 	key, _ := ecdsa.GenerateKey(elliptic.P384(), cryptoRand.Reader)
 
 	if d.ErrorLog == nil {
-		d.ErrorLog = log.New(os.Stderr, "", log.LstdFlags)
+		d.ErrorLog = slog.New(internal.DiscardHandler{})
 	}
+	d.ErrorLog = d.ErrorLog.With("src", "dialer")
 	if d.Protocol == nil {
 		d.Protocol = DefaultProtocol
 	}
@@ -132,18 +135,19 @@ func (d Dialer) DialContext(ctx context.Context, netConn net.Conn) (*Conn, error
 	request = login.EncodeOffline(conn.identityData, conn.clientData, key)
 	identityData, _, _, err := login.Parse(request)
 	if err != nil {
-		fmt.Printf("WARNING: Identity data parsing error: %v\n", err)
+		fmt.Printf("WARNING: Identity data parsing error: %w\n", err.(error))
 	}
 	// If we got the identity data from Minecraft auth, we need to make sure we set it in the Conn too, as
 	// we are not aware of the identity data ourselves yet.
 	conn.identityData = identityData
 
-	l, c := make(chan struct{}), make(chan struct{})
-	go listenConn(conn, d.ErrorLog, l, c)
+	readyForLogin, connected := make(chan struct{}), make(chan struct{})
+	ctx, cancel := context.WithCancelCause(ctx)
+	go listenConn(conn, readyForLogin, connected, cancel)
 
 	conn.expect(packet.IDNetworkSettings, packet.IDPlayStatus)
 	if err := conn.WritePacket(&packet.RequestNetworkSettings{ClientProtocol: d.Protocol.ID()}); err != nil {
-		return nil, err
+		return nil, conn.wrap(fmt.Errorf("send request network settings: %w", err), "dial")
 	}
 	_ = conn.Flush()
 
@@ -152,22 +156,20 @@ func (d Dialer) DialContext(ctx context.Context, netConn net.Conn) (*Conn, error
 		return nil, conn.wrap(context.Cause(ctx), "dial")
 	case <-conn.ctx.Done():
 		return nil, conn.closeErr("dial")
-	case <-ctx.Done():
-		return nil, conn.wrap(ctx.Err(), "dial")
-	case <-l:
+	case <-readyForLogin:
 		// We've received our network settings, so we can now send our login request.
 		conn.expect(packet.IDServerToClientHandshake, packet.IDPlayStatus)
 		if err := conn.WritePacket(&packet.Login{ConnectionRequest: request, ClientProtocol: d.Protocol.ID()}); err != nil {
-			return nil, err
+			return nil, conn.wrap(fmt.Errorf("send login: %w", err), "dial")
 		}
 		_ = conn.Flush()
 
 		select {
+		case <-ctx.Done():
+			return nil, conn.wrap(context.Cause(ctx), "dial")
 		case <-conn.ctx.Done():
 			return nil, conn.closeErr("dial")
-		case <-ctx.Done():
-			return nil, conn.wrap(ctx.Err(), "dial")
-		case <-c:
+		case <-connected:
 			// We've connected successfully. We return the connection and no error.
 			return conn, nil
 		}
@@ -176,59 +178,69 @@ func (d Dialer) DialContext(ctx context.Context, netConn net.Conn) (*Conn, error
 
 // readChainIdentityData reads a login.IdentityData from the Mojang chain
 // obtained through authentication.
-func readChainIdentityData(chainData []byte) login.IdentityData {
+func readChainIdentityData(chainData []byte) (login.IdentityData, error) {
 	chain := struct{ Chain []string }{}
 	if err := json.Unmarshal(chainData, &chain); err != nil {
-		panic("invalid chain data from authentication: " + err.Error())
+		return login.IdentityData{}, fmt.Errorf("read chain: read json: %w", err)
 	}
 	data := chain.Chain[1]
 	claims := struct {
 		ExtraData login.IdentityData `json:"extraData"`
 	}{}
-	tok, err := jwt.ParseSigned(data)
+	tok, err := jwt.ParseSigned(data, []jose.SignatureAlgorithm{jose.ES384})
 	if err != nil {
-		panic("invalid chain data from authentication: " + err.Error())
+		return login.IdentityData{}, fmt.Errorf("read chain: parse jwt: %w", err)
 	}
 	if err := tok.UnsafeClaimsWithoutVerification(&claims); err != nil {
-		panic("invalid chain data from authentication: " + err.Error())
+		return login.IdentityData{}, fmt.Errorf("read chain: read claims: %w", err)
 	}
 	if claims.ExtraData.Identity == "" {
-		panic("chain data contained no data")
+		return login.IdentityData{}, fmt.Errorf("read chain: no extra data found")
 	}
-	return claims.ExtraData
+	return claims.ExtraData, nil
 }
 
 // listenConn listens on the connection until it is closed on another goroutine. The channel passed will
 // receive a value once the connection is logged in.
-func listenConn(conn *Conn, logger *log.Logger, l, c chan struct{}) {
+func listenConn(conn *Conn, readyForLogin, connected chan struct{}, cancel context.CancelCauseFunc) {
 	defer func() {
 		_ = conn.Close()
 	}()
+	cancelContext := true
 	for {
 		// We finally arrived at the packet decoding loop. We constantly decode packets that arrive
 		// and push them to the Conn so that they may be processed.
 		packets, err := conn.dec.Decode()
 		if err != nil {
 			if !errors.Is(err, net.ErrClosed) {
-				logger.Printf("dialer conn: %v\n", err)
+				if cancelContext {
+					cancel(err)
+				} else {
+					conn.log.Error(err.Error())
+				}
 			}
 			return
 		}
 		for _, data := range packets {
 			loggedInBefore, readyToLoginBefore := conn.loggedIn, conn.readyToLogin
 			if err := conn.receive(data); err != nil {
-				logger.Printf("dialer conn: %v", err)
+				if cancelContext {
+					cancel(err)
+				} else {
+					conn.log.Error(err.Error())
+				}
 				return
 			}
 			if !readyToLoginBefore && conn.readyToLogin {
 				// This is the signal that the connection is ready to login, so we put a value in the channel so that
 				// it may be detected.
-				l <- struct{}{}
+				readyForLogin <- struct{}{}
 			}
 			if !loggedInBefore && conn.loggedIn {
 				// This is the signal that the connection was considered logged in, so we put a value in the channel so
 				// that it may be detected.
-				c <- struct{}{}
+				cancelContext = false
+				connected <- struct{}{}
 			}
 		}
 	}
@@ -253,13 +265,13 @@ func defaultClientData(
 	d.DeviceOS = protocol.DeviceAndroid
 	d.GameVersion = protocol.CurrentVersion
 	d.ClientRandomID = mathRand.Int63()
-	d.DeviceID = uuid.NewString()
+	d.DeviceID = uuid.New().String()
 	d.LanguageCode = "zh_CN" // Netease
 	d.AnimatedImageData = make([]login.SkinAnimation, 0)
 	d.PersonaPieces = make([]login.PersonaPiece, 0)
 	d.PieceTintColours = make([]login.PersonaPieceTintColour, 0)
-	d.SelfSignedID = uuid.NewString()
-	d.SkinID = uuid.NewString()
+	d.SelfSignedID = uuid.New().String()
+	d.SkinID = uuid.New().String()
 	d.SkinData = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0, 0, 0, 255}, 32*64))
 	d.SkinGeometry = base64.StdEncoding.EncodeToString(skinGeometry)
 	d.SkinResourcePatch = base64.StdEncoding.EncodeToString(skinResourcePatch)

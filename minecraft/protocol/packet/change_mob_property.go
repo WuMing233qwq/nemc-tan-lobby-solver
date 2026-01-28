@@ -8,13 +8,11 @@ import (
 type ChangeMobProperty struct {
 	/*
 		PhoenixBuilder specific changes.
-		Changes Maker: Liliya233
-		Committed by Happy2018new.
+		Author: Liliya233, Happy2018new
 
 		EntityUniqueID is the unique ID of the entity whose property is being changed.
 
-		For netease, the data type of this field is int64,
-		but on standard minecraft, this is uint64.
+		This is a mistake of upstream.
 	*/
 	EntityUniqueID int64
 	// EntityUniqueID uint64
@@ -38,8 +36,9 @@ func (*ChangeMobProperty) ID() uint32 {
 
 func (pk *ChangeMobProperty) Marshal(io protocol.IO) {
 	// PhoenixBuilder specific changes.
-	// Changes Maker: Liliya233
-	// Committed by Happy2018new.
+	// Author: Liliya233, Happy2018new
+	//
+	// This is a mistake of upstream.
 	{
 		io.Varint64(&pk.EntityUniqueID)
 		// io.Uint64(&pk.EntityUniqueID)

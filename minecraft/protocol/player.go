@@ -42,6 +42,7 @@ const (
 	PlayerActionStartFlying
 	PlayerActionStopFlying
 	PlayerActionClientAckServerData
+	PlayerActionStartUsingItem
 )
 
 const (
@@ -146,4 +147,24 @@ func (x *PlayerBlockAction) Marshal(r IO) {
 		r.BlockPos(&x.BlockPos)
 		r.Varint32(&x.Face)
 	}
+}
+
+// PhoenixBuilder specific struct.
+// Author: Liliya233
+//
+// Netease
+type NeteasePlayerData struct {
+	Unknown1 bool
+	UUID     uuid.UUID
+	Unknown2 string
+}
+
+// PhoenixBuilder specific func.
+// Author: Liliya233
+//
+// Netease
+func (x *NeteasePlayerData) Marshal(r IO) {
+	r.Bool(&x.Unknown1)
+	r.UUID(&x.UUID)
+	r.String(&x.Unknown2)
 }

@@ -116,7 +116,7 @@ const (
 	IDSetLocalPlayerAsInitialised
 	IDUpdateSoftEnum
 	IDNetworkStackLatency
-	_
+	IDScriptCustomEvent
 	_
 	IDSpawnParticleEffect
 	IDAvailableActorIdentifiers
@@ -252,4 +252,14 @@ const (
 	IDSetHud
 	IDAwardAchievement
 	IDClientBoundCloseForm
+	_
+	IDServerBoundLoadingScreen
+	IDJigsawStructureData
+	IDCurrentStructureFeature
+	IDServerBoundDiagnostics
+	IDCameraAimAssist
+	IDContainerRegistryCleanup
+	IDMovementEffect
+	IDSetMovementAuthority
+	IDCameraAimAssistPresets
 )

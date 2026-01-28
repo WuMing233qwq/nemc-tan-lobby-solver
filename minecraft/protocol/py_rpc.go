@@ -42,22 +42,22 @@ func FormatMapInMsgpack(mapping map[any]any) (result any, err error) {
 		switch key.(type) {
 		case string:
 			if map_type != MapKeyTypeUnknown && map_type != MapKeyTypeString {
-				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is string, but it is %T; mapping = %#v", key, mapping)
+				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is %d, but we get string; mapping = %#v", map_type, mapping)
 			}
 			map_type = MapKeyTypeString
 		case uint64:
 			if map_type != MapKeyTypeUnknown && map_type != MapKeyTypeUint64 {
-				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is uint64, but it is %T; mapping = %#v", key, mapping)
+				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is %d, but we get uint64; mapping = %#v", map_type, mapping)
 			}
 			map_type = MapKeyTypeUint64
 		case int64:
 			if map_type != MapKeyTypeUnknown && map_type != MapKeyTypeInt64 {
-				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is int64, but it is %T; mapping = %#v", key, mapping)
+				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is %d, but we get int64; mapping = %#v", map_type, mapping)
 			}
 			map_type = MapKeyTypeInt64
 		default:
 			if map_type != MapKeyTypeUnknown && map_type != MapKeyTypeInterface {
-				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is interface{}, but it is %T; mapping = %#v", key, mapping)
+				return nil, fmt.Errorf("FormatMapInMsgpack: We expect the map key is %d, but we get interface{}; mapping = %#v", map_type, mapping)
 			}
 			map_type = MapKeyTypeInterface
 		}

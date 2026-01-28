@@ -33,7 +33,7 @@ require (
 require (
 	github.com/coder/websocket v1.8.14
 	github.com/database64128/chacha8-go v0.0.0-20250815115417-e0f2726d8bd0
-	github.com/go-jose/go-jose/v3 v3.0.4
+	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/golang/snappy v1.0.0
 	github.com/klauspost/compress v1.18.0
 	github.com/muhammadmuzzammil1998/jsonc v1.0.0

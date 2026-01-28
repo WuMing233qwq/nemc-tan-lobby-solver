@@ -3,7 +3,7 @@ package minecraft_test
 import (
 	"fmt"
 
-	minecraft "github.com/Happy2018new/nemc-tan-lobby-solver/minecraft"
+	"github.com/Happy2018new/nemc-tan-lobby-solver/minecraft"
 	"github.com/Happy2018new/nemc-tan-lobby-solver/minecraft/protocol/packet"
 )
 

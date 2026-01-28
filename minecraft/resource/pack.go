@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/muhammadmuzzammil1998/jsonc"
 )
 
@@ -117,7 +118,7 @@ func (pack *Pack) Name() string {
 }
 
 // UUID returns the UUID of the resource pack.
-func (pack *Pack) UUID() string {
+func (pack *Pack) UUID() uuid.UUID {
 	return pack.manifest.Header.UUID
 }
 
@@ -397,7 +398,17 @@ func readManifest(path string) (*Manifest, error) {
 	// Try to find the manifest file in the zip.
 	manifestFile, err := reader.find("manifest.json")
 	if err != nil {
-		return nil, fmt.Errorf("load manifest: %w", err)
+		// PhoenixBuilder specific changes.
+		// Author: Liliya233
+		//
+		// Netease
+		{
+			manifestFile, err = reader.find("pack_manifest.json")
+			if err != nil {
+				return nil, fmt.Errorf("load manifest: %w", err)
+			}
+			// return nil, fmt.Errorf("load manifest: %w", err)
+		}
 	}
 	defer func() {
 		_ = manifestFile.Close()
@@ -412,7 +423,6 @@ func readManifest(path string) (*Manifest, error) {
 	if err := jsonc.Unmarshal(allData, manifest); err != nil {
 		return nil, fmt.Errorf("decode manifest JSON: %w (data: %v)", err, string(allData))
 	}
-	manifest.Header.UUID = strings.ToLower(manifest.Header.UUID)
 
 	if _, err := reader.find("level.dat"); err == nil {
 		manifest.worldTemplate = true
