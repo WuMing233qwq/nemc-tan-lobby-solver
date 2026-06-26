@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/Happy2018new/nemc-tan-lobby-solver/minecraft/protocol"
 	"math/rand"
 	"net"
 	"sync/atomic"
@@ -127,23 +128,24 @@ func (l *ListenConfig) createTanLobbyRoom(
 		Privacy:  l.RoomConfig.RoomPrivacy,
 		Name:     "",
 		Tips: encoding.RoomTips{
-			LevelID:            "World",
-			GameType:           0,
-			ConstantTestString: "test",
-			Vioce:              0,
-			ProtocolID:         40,
+			LevelID:              l.RoomConfig.LevelID,
+			GameType:             l.RoomConfig.GameType,
+			ConstantTestString:   "test",
+			Vioce:                l.RoomConfig.Voice,
+			ProtocolID:           41,
+			HostMinecraftVersion: protocol.CurrentVersion,
 		},
 		ItemIDs:      l.RoomConfig.UsedModItemIDs,
-		MinLevel:     0,
+		MinLevel:     l.RoomConfig.MinLevel,
 		PvP:          l.RoomConfig.AllowPvP,
-		TeamID:       0,
+		TeamID:       l.RoomConfig.TeamID,
 		PlayerAuth:   l.RoomConfig.PlayerPermission,
 		Password:     l.RoomConfig.RoomPasscode,
 		Slogan:       l.RoomConfig.RoomName,
-		MapID:        0,
-		EnableWebRTC: true,
-		OwnerPing:    3,
-		PerfLv:       1,
+		MapID:        l.RoomConfig.MapID,
+		EnableWebRTC: l.RoomConfig.EnableWebRTC,
+		OwnerPing:    l.RoomConfig.OwnerPing,
+		PerfLv:       l.RoomConfig.PerfLv,
 	})
 	if err != nil {
 		_ = conn.Close()

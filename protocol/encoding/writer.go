@@ -133,6 +133,7 @@ func (w *Writer) RoomTips(x *RoomTips) {
 	writer.StringUTF(&x.ConstantTestString)
 	writer.Int16(&x.Vioce)
 	writer.Uint8(&x.ProtocolID)
+	writer.StringUTF(&x.HostMinecraftVersion)
 
 	bufBytes, length = buf.Bytes(), uint16(buf.Len())
 	w.Uint16(&length)

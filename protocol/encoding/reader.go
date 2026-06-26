@@ -173,6 +173,7 @@ func (r *Reader) RoomTips(x *RoomTips) {
 	r.StringUTF(&x.ConstantTestString)
 	r.Int16(&x.Vioce)
 	r.Uint8(&x.ProtocolID)
+	r.StringUTF(&x.HostMinecraftVersion)
 }
 
 // Bytes reads the leftover bytes into a byte slice.
