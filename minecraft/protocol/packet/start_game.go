@@ -23,6 +23,7 @@ const (
 	EditorWorldTypeNotEditor = iota
 	EditorWorldTypeProject
 	EditorWorldTypeTestLevel
+	EditorWorldTypeRealmsUpload
 )
 
 // StartGame is sent by the server to send information about the world the player will be spawned in. It
@@ -214,9 +215,6 @@ type StartGame struct {
 	EnchantmentSeed int32
 	// Blocks is a list of all custom blocks registered on the server.
 	Blocks []protocol.BlockEntry
-	// Items is a list of all items with their legacy IDs which are available in the game. Failing to send any
-	// of the items that are in the game will crash mobile clients.
-	Items []protocol.ItemEntry
 	// MultiPlayerCorrelationID is a unique ID specifying the multi-player session of the player. A random
 	// UUID should be filled out for this field.
 	MultiPlayerCorrelationID string
@@ -248,6 +246,8 @@ type StartGame struct {
 	WorldID string
 	// ScenarioID is always empty in vanilla and its usage is currently unknown.
 	ScenarioID string
+	// OwnerID is always empty in vanilla and its usage is currently unknown.
+	OwnerID string
 	// UseBlockNetworkIDHashes is true if the client should use the hash of a block's name as its network ID rather than
 	// its index in the expected block palette. This is useful for servers that wish to support multiple protocol versions
 	// and custom blocks, but it will result in extra bytes being written for every block in a sub chunk palette.
@@ -322,6 +322,7 @@ func (pk *StartGame) Marshal(io protocol.IO) {
 	io.String(&pk.ServerID)
 	io.String(&pk.WorldID)
 	io.String(&pk.ScenarioID)
+	io.String(&pk.OwnerID)
 	io.String(&pk.LevelID)
 	io.String(&pk.WorldName)
 	io.String(&pk.TemplateContentIdentity)
@@ -330,7 +331,6 @@ func (pk *StartGame) Marshal(io protocol.IO) {
 	io.Int64(&pk.Time)
 	io.Varint32(&pk.EnchantmentSeed)
 	protocol.Slice(io, &pk.Blocks)
-	protocol.Slice(io, &pk.Items)
 	io.String(&pk.MultiPlayerCorrelationID)
 	io.Bool(&pk.ServerAuthoritativeInventory)
 	io.String(&pk.GameVersion)

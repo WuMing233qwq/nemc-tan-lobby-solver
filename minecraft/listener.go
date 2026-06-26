@@ -257,7 +257,14 @@ func (listener *Listener) createConn(netConn net.Conn) {
 	packs := slices.Clone(listener.packs)
 	listener.packsMu.RUnlock()
 
-	conn := newConn(netConn, true, listener.key, listener.cfg.ErrorLog, proto{}, listener.cfg.FlushRate, true)
+	// Detect whether the underlying connection prepends a batch header (raknet uses 0xfe;
+	// nethernet/WebRTC has no header). This lets the Listener work over both transports.
+	readAndWriteHeader := true
+	if h, ok := netConn.(interface{ PacketHeader() (byte, bool) }); ok {
+		_, readAndWriteHeader = h.PacketHeader()
+	}
+
+	conn := newConn(netConn, readAndWriteHeader, listener.key, listener.cfg.ErrorLog, proto{}, listener.cfg.FlushRate, true)
 	conn.acceptedProto = append(listener.cfg.AcceptedProtocols, proto{})
 	conn.compression = listener.cfg.Compression
 	conn.pool = conn.proto.Packets(true)

@@ -114,7 +114,16 @@ func (d Dialer) DialContext(ctx context.Context, netConn net.Conn) (*Conn, error
 		d.FlushRate = time.Second / 20
 	}
 
-	conn := newConn(netConn, false, key, d.ErrorLog, d.Protocol, d.FlushRate, false)
+	// Whether to read/write the RakNet 0xfe frame header depends on the transport: standard
+	// RakNet connections (e.g. dialing a vanilla/Geyser server) require it, while NetherNet
+	// connections carry no header. Probe PacketHeader() exactly like Listener.createConn does
+	// instead of hardcoding, otherwise dialing a RakNet server sends header-less batches that
+	// the server rejects with "Invalid frame ID".
+	readAndWriteHeader := true
+	if h, ok := netConn.(interface{ PacketHeader() (byte, bool) }); ok {
+		_, readAndWriteHeader = h.PacketHeader()
+	}
+	conn := newConn(netConn, readAndWriteHeader, key, d.ErrorLog, d.Protocol, d.FlushRate, false)
 	conn.pool = conn.proto.Packets(false)
 	conn.identityData = d.IdentityData
 	conn.clientData = d.ClientData
@@ -132,10 +141,10 @@ func (d Dialer) DialContext(ctx context.Context, netConn net.Conn) (*Conn, error
 	// we can't edit. We just enforce Android data for logging in.
 	setAndroidData(&conn.clientData)
 
-	request = login.EncodeOffline(conn.identityData, conn.clientData, key)
+	request = login.EncodeOffline(conn.identityData, conn.clientData, key, false)
 	identityData, _, _, err := login.Parse(request)
-	if err != nil {
-		fmt.Printf("WARNING: Identity data parsing error: %w\n", err.(error))
+	if err != nil && d.ErrorLog != nil {
+		d.ErrorLog.Warn("identity data parsing error", "error", err)
 	}
 	// If we got the identity data from Minecraft auth, we need to make sure we set it in the Conn too, as
 	// we are not aware of the identity data ourselves yet.
@@ -262,23 +271,54 @@ func defaultClientData(
 	d *login.ClientData,
 	// address, username string, d *login.ClientData,
 ) {
+	// As the doc says, defaults are only applied to fields that were left unchanged. This lets a
+	// caller (e.g. a forward proxy) pass through the real player's ClientData (skin, etc.) without
+	// it being clobbered, while a caller that passes an empty ClientData still gets a full default.
+	// DeviceOS/GameVersion are intentionally forced (see setAndroidData): we always log in as an
+	// Android device of the current version so the titleId/protocol line up with the target server.
 	d.DeviceOS = protocol.DeviceAndroid
 	d.GameVersion = protocol.CurrentVersion
-	d.ClientRandomID = mathRand.Int63()
-	d.DeviceID = uuid.New().String()
-	d.LanguageCode = "zh_CN" // Netease
-	d.AnimatedImageData = make([]login.SkinAnimation, 0)
-	d.PersonaPieces = make([]login.PersonaPiece, 0)
-	d.PieceTintColours = make([]login.PersonaPieceTintColour, 0)
-	d.SelfSignedID = uuid.New().String()
-	d.SkinID = uuid.New().String()
-	d.SkinData = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0, 0, 0, 255}, 32*64))
-	d.SkinGeometry = base64.StdEncoding.EncodeToString(skinGeometry)
-	d.SkinResourcePatch = base64.StdEncoding.EncodeToString(skinResourcePatch)
-	d.SkinImageHeight = 32
-	d.SkinImageWidth = 64
+	if d.ClientRandomID == 0 {
+		d.ClientRandomID = mathRand.Int63()
+	}
+	if d.DeviceID == "" {
+		d.DeviceID = uuid.New().String()
+	}
+	if d.LanguageCode == "" {
+		d.LanguageCode = "zh_CN" // Netease
+	}
+	if d.AnimatedImageData == nil {
+		d.AnimatedImageData = make([]login.SkinAnimation, 0)
+	}
+	if d.PersonaPieces == nil {
+		d.PersonaPieces = make([]login.PersonaPiece, 0)
+	}
+	if d.PieceTintColours == nil {
+		d.PieceTintColours = make([]login.PersonaPieceTintColour, 0)
+	}
+	if d.SelfSignedID == "" {
+		d.SelfSignedID = uuid.New().String()
+	}
+	if d.SkinID == "" {
+		d.SkinID = uuid.New().String()
+	}
+	if d.SkinData == "" {
+		d.SkinData = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0, 0, 0, 255}, 32*64))
+	}
+	if d.SkinGeometry == "" {
+		d.SkinGeometry = base64.StdEncoding.EncodeToString(skinGeometry)
+	}
+	if d.SkinResourcePatch == "" {
+		d.SkinResourcePatch = base64.StdEncoding.EncodeToString(skinResourcePatch)
+	}
+	if d.SkinImageHeight == 0 {
+		d.SkinImageHeight = 32
+	}
+	if d.SkinImageWidth == 0 {
+		d.SkinImageWidth = 64
+	}
 
-	{
+	if d.PlayFabID == "" {
 		id := make([]byte, 8)
 		_, _ = cryptoRand.Read(id)
 		d.PlayFabID = hex.EncodeToString(id)

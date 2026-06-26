@@ -20,10 +20,10 @@ const (
 	IDTakeItemActor
 	IDMoveActorAbsolute
 	IDMovePlayer
-	IDPassengerJump
+	_
 	IDUpdateBlock
 	IDAddPainting
-	IDTickSync
+	_
 	_
 	IDLevelEvent
 	IDBlockEvent
@@ -57,7 +57,7 @@ const (
 	IDGUIDataPickItem
 	IDAdventureSettings
 	IDBlockActorData
-	IDPlayerInput
+	_
 	IDLevelChunk
 	IDSetCommandsEnabled
 	IDSetDifficulty
@@ -116,8 +116,8 @@ const (
 	IDSetLocalPlayerAsInitialised
 	IDUpdateSoftEnum
 	IDNetworkStackLatency
-	IDScriptCustomEvent
 	_
+	IDScriptCustomEvent
 	IDSpawnParticleEffect
 	IDAvailableActorIdentifiers
 	_
@@ -162,7 +162,7 @@ const (
 	IDCameraShake
 	IDPlayerFog
 	IDCorrectPlayerMovePrediction
-	IDItemComponent
+	IDItemRegistry
 	IDFilterText
 	IDClientBoundDebugRenderer
 	IDSyncActorProperty
@@ -242,7 +242,7 @@ const (
 	// PhoenixBuilder specific changes.
 	// Author: Liliya233
 	IDCameraInstruction = iota + 76
-	IDCompressedBiomeDefinitionList
+	_
 	IDTrimData
 	IDOpenSign
 	IDAgentAnimation
@@ -260,6 +260,14 @@ const (
 	IDCameraAimAssist
 	IDContainerRegistryCleanup
 	IDMovementEffect
-	IDSetMovementAuthority
+	_
 	IDCameraAimAssistPresets
+	IDClientCameraAimAssist
+	IDClientMovementPredictionSync
+	IDUpdateClientOptions
+	IDPlayerVideoCapture
+	IDPlayerUpdateEntityOverrides
+	IDPlayerLocation
+	IDClientBoundControlSchemeSet
+	IDServerScriptDebugDrawer
 )

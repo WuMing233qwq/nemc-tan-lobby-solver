@@ -133,7 +133,7 @@ func (w *Writer) SubChunkPos(x *SubChunkPos) {
 // SoundPos writes an mgl32.Vec3 that serves as a position for a sound.
 func (w *Writer) SoundPos(x *mgl32.Vec3) {
 	b := BlockPos{int32((*x)[0] * 8), int32((*x)[1] * 8), int32((*x)[2] * 8)}
-	w.BlockPos(&b)
+	w.UBlockPos(&b)
 }
 
 // RGB writes a color.RGBA x as 3 float32s to the underlying buffer.
@@ -150,6 +150,18 @@ func (w *Writer) RGB(x *color.RGBA) {
 func (w *Writer) RGBA(x *color.RGBA) {
 	val := uint32(x.R) | uint32(x.G)<<8 | uint32(x.B)<<16 | uint32(x.A)<<24
 	w.Uint32(&val)
+}
+
+// ARGB writes a color.RGBA x as a int32 to the underlying buffer.
+func (w *Writer) ARGB(x *color.RGBA) {
+	val := int32(x.A) | int32(x.R)<<8 | int32(x.G)<<16 | int32(x.B)<<24
+	w.Int32(&val)
+}
+
+// BEARGB writes a color.RGBA x as a big endian int32 to the underlying buffer.
+func (w *Writer) BEARGB(x *color.RGBA) {
+	val := int32(x.A) | int32(x.R)<<8 | int32(x.G)<<16 | int32(x.B)<<24
+	w.BEInt32(&val)
 }
 
 // VarRGBA writes a color.RGBA x as a varuint32 to the underlying buffer.
@@ -475,41 +487,6 @@ func (w *Writer) AbilityValue(x *any) {
 	}
 }
 
-// CompressedBiomeDefinitions reads a list of compressed biome definitions from the reader. Minecraft decided to make their
-// own type of compression for this, so we have to implement it ourselves. It uses a dictionary of repeated byte sequences
-// to reduce the size of the data. The compressed data is read byte-by-byte, and if the byte is 0xff then it is assumed
-// that the next two bytes are an int16 for the dictionary index. Otherwise, the byte is copied to the output. The dictionary
-// index is then used to look up the byte sequence to be appended to the output.
-func (w *Writer) CompressedBiomeDefinitions(x *map[string]any) {
-	decompressed, err := nbt.Marshal(x)
-	if err != nil {
-		w.panicf("error marshaling nbt: %v", err)
-	}
-
-	var compressed []byte
-	buf := bytes.NewBuffer(compressed)
-	bufWriter := NewWriter(buf, w.shieldID)
-
-	header := []byte("COMPRESSED")
-	bufWriter.Bytes(&header)
-
-	// TODO: Dictionary compression implementation
-	var dictionaryLength uint16
-	bufWriter.Uint16(&dictionaryLength)
-	for _, b := range decompressed {
-		bufWriter.Uint8(&b)
-		if b == 0xff {
-			dictionaryIndex := int16(1)
-			bufWriter.Int16(&dictionaryIndex)
-		}
-	}
-
-	compressed = buf.Bytes()
-	length := uint32(len(compressed))
-	w.Varuint32(&length)
-	w.Bytes(&compressed)
-}
-
 var varintMaxByteValue = big.NewInt(0x80)
 
 func (w *Writer) Bitset(x *Bitset, size int) {
@@ -537,7 +514,13 @@ func (w *Writer) Bitset(x *Bitset, size int) {
 // Netease's Python MsgPack
 func (w *Writer) MsgPack(x *any) {
 	var msgPackBytes []byte
-	if err := codec.NewEncoderBytes(&msgPackBytes, &codec.MsgpackHandle{}).Encode(x); err != nil {
+	// Netease 把 PyRpc value 树里的每个字符串都编成 msgpack `bin`(0xc4)，而非 legacy `str`。
+	// ugorji 仅在 WriteExt && StringToRaw 同时为真时把 Go string 编为 bin；裸 MsgpackHandle{}
+	// 会编成 str，网易客户端按字节匹配事件名 → 收不到任何 host PyRpc(加载握手卡死)。
+	mh := &codec.MsgpackHandle{}
+	mh.WriteExt = true
+	mh.StringToRaw = true
+	if err := codec.NewEncoderBytes(&msgPackBytes, mh).Encode(x); err != nil {
 		panic(fmt.Sprintf("(w *Writer) MsgPack: %v", err))
 	}
 	w.ByteSlice(&msgPackBytes)

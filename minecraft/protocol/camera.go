@@ -85,6 +85,8 @@ type CameraInstructionSet struct {
 	EntityOffset Optional[mgl32.Vec3]
 	// Default determines whether the camera is a default camera or not.
 	Default Optional[bool]
+	// IgnoreStartingValuesComponent behavior is currently unknown.
+	IgnoreStartingValuesComponent bool
 }
 
 // Marshal encodes/decodes a CameraInstructionSet.
@@ -97,6 +99,7 @@ func (x *CameraInstructionSet) Marshal(r IO) {
 	OptionalFunc(r, &x.ViewOffset, r.Vec2)
 	OptionalFunc(r, &x.EntityOffset, r.Vec3)
 	OptionalFunc(r, &x.Default, r.Bool)
+	r.Bool(&x.IgnoreStartingValuesComponent)
 }
 
 // CameraFadeTimeData represents the time data for a CameraInstructionFade.
@@ -181,16 +184,29 @@ type CameraPreset struct {
 	// Radius is only used in a follow_orbit camera and controls how far away from the player the camera should
 	// be rendered.
 	Radius Optional[float32]
+	// MinYawLimit is the minimum yaw limit of the camera.
+	MinYawLimit Optional[float32]
+	// MaxYawLimit is the maximum yaw limit of the camera.
+	MaxYawLimit Optional[float32]
 	// AudioListener defines where the audio should be played from when using this preset. This is one of the
 	// constants above.
 	AudioListener Optional[byte]
 	// PlayerEffects is currently unknown.
 	PlayerEffects Optional[bool]
-	// AlignTargetAndCameraForward determines whether the camera should align the target and the camera forward
-	// or not.
-	AlignTargetAndCameraForward Optional[bool]
 	// AimAssist defines the aim assist to use when using this preset.
 	AimAssist Optional[CameraPresetAimAssist]
+	// ControlScheme is the control scheme that the client should use in this camera. It is one of the following:
+	//  - ControlSchemeLockedPlayerRelativeStrafe is the default behaviour, this cannot be set when the client
+	//    is in a custom camera.
+	//  - ControlSchemeCameraRelative makes movement relative to the camera's transform, with the client's
+	//    rotation being relative to the client's movement.
+	//  - ControlSchemeCameraRelativeStrafe makes movement relative to the camera's transform, with the
+	//    client's rotation being locked.
+	//  - ControlSchemePlayerRelative makes movement relative to the player's transform, meaning holding
+	//    left/right will make the player turn in a circle.
+	//  - ControlSchemePlayerRelativeStrafe makes movement the same as the default behaviour, but can be
+	//    used in a custom camera.
+	ControlScheme Optional[byte]
 }
 
 // Marshal encodes/decodes a CameraPreset.
@@ -211,10 +227,12 @@ func (x *CameraPreset) Marshal(r IO) {
 	OptionalFunc(r, &x.ViewOffset, r.Vec2)
 	OptionalFunc(r, &x.EntityOffset, r.Vec3)
 	OptionalFunc(r, &x.Radius, r.Float32)
+	OptionalFunc(r, &x.MinYawLimit, r.Float32)
+	OptionalFunc(r, &x.MaxYawLimit, r.Float32)
 	OptionalFunc(r, &x.AudioListener, r.Uint8)
 	OptionalFunc(r, &x.PlayerEffects, r.Bool)
-	OptionalFunc(r, &x.AlignTargetAndCameraForward, r.Bool)
 	OptionalMarshaler(r, &x.AimAssist)
+	OptionalFunc(r, &x.ControlScheme, r.Uint8)
 }
 
 // CameraPresetAimAssist represents a preset for aim assist settings.
@@ -238,20 +256,6 @@ func (x *CameraPresetAimAssist) Marshal(r IO) {
 	OptionalFunc(r, &x.TargetMode, r.Int32)
 	OptionalFunc(r, &x.Angle, r.Vec2)
 	OptionalFunc(r, &x.Distance, r.Float32)
-}
-
-// CameraAimAssistCategoryGroup is a group of categories which can be used by a CameraAimAssistPreset.
-type CameraAimAssistCategoryGroup struct {
-	// Identifier is the unique identifier of the group.
-	Identifier string
-	// Categories is a list of categories within this group.
-	Categories []CameraAimAssistCategory
-}
-
-// Marshal encodes/decodes a CameraAimAssistCategoryGroup.
-func (x *CameraAimAssistCategoryGroup) Marshal(r IO) {
-	r.String(&x.Identifier)
-	Slice(r, &x.Categories)
 }
 
 // CameraAimAssistCategory is an aim assist category that defines priorities for specific blocks and entities.
@@ -308,8 +312,6 @@ func (x *CameraAimAssistPriority) Marshal(r IO) {
 type CameraAimAssistPreset struct {
 	// Identifier represents the identifier of this preset.
 	Identifier string
-	// CategoryGroup is the name of a CameraAimAssistCategoryGroup to use for the preset.
-	CategoryGroup string
 	// BlockExclusions is a list of block identifiers that should be ignored by the aim assist.
 	BlockExclusions []string
 	// LiquidTargets is a list of entity identifiers that should be targetted when inside of a liquid.
@@ -318,18 +320,16 @@ type CameraAimAssistPreset struct {
 	// will fallback to DefaultItemSettings or HandSettings if no item is held.
 	ItemSettings []CameraAimAssistItemSettings
 	// DefaultItemSettings is the identifier of a category to use when the player is not holding an item
-	// listed in ItemSettings. This must be the identifier of a category within the
-	// CameraAimAssistCategoryGroup references by CategoryGroup.
+	// listed in ItemSettings. This must be the identifier of a category within the Categories slice.
 	DefaultItemSettings Optional[string]
 	// HandSettings is the identifier of a category to use when the player is not holding an item. This must
-	// be the identifier of a category within the CameraAimAssistCategoryGroup references by CategoryGroup.
+	// be the identifier of a category within Categories slice.
 	HandSettings Optional[string]
 }
 
 // Marshal encodes/decodes a CameraAimAssistPreset.
 func (x *CameraAimAssistPreset) Marshal(r IO) {
 	r.String(&x.Identifier)
-	r.String(&x.CategoryGroup)
 	FuncSlice(r, &x.BlockExclusions, r.String)
 	FuncSlice(r, &x.LiquidTargets, r.String)
 	Slice(r, &x.ItemSettings)
@@ -342,7 +342,7 @@ type CameraAimAssistItemSettings struct {
 	// Item is the identifier of the item to apply the settings to.
 	Item string
 	// Category is the identifier of a category to use which has been defined by a CameraAimAssistCategory.
-	// Only categories defined in the CameraAimAssistCategoryGroup used by the CameraAimAssistPreset can be
+	// Only categories defined in the Categories slice used by the CameraAimAssistPreset can be
 	// used here.
 	Category string
 }
