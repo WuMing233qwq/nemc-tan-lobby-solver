@@ -16,10 +16,9 @@ type PhoenixSkinInfo struct {
 
 // TanLobbyLoginRequest ..
 type TanLobbyLoginRequest struct {
-	FBToken            string `json:"login_token"`
-	ProvidedPEAuthData string `json:"provided_pe_auth_data"`
-	ProvidedSaAuthData string `json:"provided_sa_auth_data"`
-	RoomID             string `json:"room_id"`
+	FBToken string `json:"login_token"`
+	Account string `json:"account"`
+	RoomID  string `json:"room_id"`
 }
 
 // TanLobbyLoginResponse ..
@@ -52,10 +51,9 @@ type TanLobbyLoginResponse struct {
 func (client *Client) Auth(roomID string) (TanLobbyLoginResponse, error) {
 	// Pack request
 	request := TanLobbyLoginRequest{
-		FBToken:            client.FBToken,
-		ProvidedPEAuthData: client.ProvidedPEAuthData,
-		ProvidedSaAuthData: client.ProvidedSaAuthData,
-		RoomID:             roomID,
+		FBToken: client.FBToken,
+		Account: client.Account,
+		RoomID:  roomID,
 	}
 	requestJsonBytes, _ := json.Marshal(request)
 
@@ -81,9 +79,8 @@ func (client *Client) Auth(roomID string) (TanLobbyLoginResponse, error) {
 
 // TanLobbyCreateRequest ..
 type TanLobbyCreateRequest struct {
-	FBToken            string `json:"login_token"`
-	ProvidedPEAuthData string `json:"provided_pe_auth_data"`
-	ProvidedSaAuthData string `json:"provided_sa_auth_data"`
+	FBToken string `json:"login_token"`
+	Account string `json:"account"`
 }
 
 // TanLobbyCreateResponse ..
@@ -108,9 +105,8 @@ type TanLobbyCreateResponse struct {
 func (client *Client) TanLobbyCreate() (TanLobbyCreateResponse, error) {
 	// Pack request
 	request := TanLobbyCreateRequest{
-		FBToken:            client.FBToken,
-		ProvidedPEAuthData: client.ProvidedPEAuthData,
-		ProvidedSaAuthData: client.ProvidedSaAuthData,
+		FBToken: client.FBToken,
+		Account: client.Account,
 	}
 	requestJsonBytes, _ := json.Marshal(request)
 
@@ -137,6 +133,7 @@ func (client *Client) TanLobbyCreate() (TanLobbyCreateResponse, error) {
 // TanLobbyDebugRequest ..
 type TanLobbyDebugRequest struct {
 	FBToken       string `json:"login_token"`
+	Account       string `json:"account"`
 	LoginResponse string `json:"login_response"`
 	RaknetRand    []byte `json:"raknet_rand"`
 }
@@ -153,6 +150,7 @@ func (client *Client) TanLobbyDebug(loginResponse string, raknetRand []byte) (Ta
 	// Pack request
 	request := TanLobbyDebugRequest{
 		FBToken:       client.FBToken,
+		Account:       client.Account,
 		LoginResponse: loginResponse,
 		RaknetRand:    raknetRand,
 	}

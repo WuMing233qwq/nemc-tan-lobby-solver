@@ -14,9 +14,9 @@ type AccessWrapper struct {
 	client *Client
 }
 
-func NewAccessWrapper(authServer string, token string, peAuth string, saAuth string) *AccessWrapper {
+func NewAccessWrapper(authServer string, token string, account string) *AccessWrapper {
 	return &AccessWrapper{
-		client: NewClient(authServer, token, peAuth, saAuth),
+		client: NewClient(authServer, token, account),
 	}
 }
 

@@ -15,7 +15,7 @@ func main() {
 	if false {
 		listenConfig, listener, roomID, err := service.Listen(
 			service.DefaultRoomConfig("来和我一起玩吧！", "", 10, service.PlayerPermissionMember),
-			bunker.NewAccessWrapper("AUTH SERVER ADDRESS", "YOUR FB TOKEN", "PE AUTH (CAN BE EMPTY)", "SA AUTH (CAN BE EMPTY)"),
+			bunker.NewAccessWrapper("AUTH SERVER ADDRESS", "YOUR FB TOKEN", "ACCOUNT (CAN BE EMPTY)"),
 		)
 		if err != nil {
 			panic(err)
@@ -64,7 +64,7 @@ func main() {
 		netConn, tanLobbyLoginResp, err := service.Dial(
 			"ROOM ID",
 			"ROOM PASSCODE",
-			bunker.NewAccessWrapper("AUTH SERVER ADDRESS", "YOUR FB TOKEN", "PE AUTH (CAN BE EMPTY)", "SA AUTH (CAN BE EMPTY)"),
+			bunker.NewAccessWrapper("AUTH SERVER ADDRESS", "YOUR FB TOKEN", "ACCOUNT (CAN BE EMPTY)"),
 		)
 		if err != nil {
 			panic(err)

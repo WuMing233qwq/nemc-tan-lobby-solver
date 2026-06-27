@@ -26,8 +26,7 @@ func main() {
 	wrapper := bunker.NewAccessWrapper(
 		"AUTH SERVER ADDRESS",
 		"YOUR FB TOKEN",
-		"PE AUTH (CAN BE EMPTY)",
-		"SA AUTH (CAN BE EMPTY)",
+		"ACCOUNT (CAN BE EMPTY)",
 	)
 
 	str := ``
