@@ -25,6 +25,8 @@ type RoomConfig struct {
 	RoomPrivacy      uint8
 	RoomTagList      []uint8
 	RoomRefreshTime  time.Duration
+	RoomReconnect    signaling.ReconnectPolicy
+	RoomLogName      string // 房间备注(上层设),用于库层 ws 日志标识
 	MaxPlayerCount   uint8
 	UsedModItemIDs   []uint64
 	PlayerPermission uint32

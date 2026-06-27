@@ -16,6 +16,7 @@ import (
 	"github.com/Happy2018new/nemc-tan-lobby-solver/protocol/encoding"
 	"github.com/Happy2018new/nemc-tan-lobby-solver/protocol/packet"
 	"github.com/Happy2018new/nemc-tan-lobby-solver/protocol/service/signaling"
+	"github.com/pion/webrtc/v4"
 )
 
 // ListenConfig ..
@@ -271,11 +272,19 @@ func (l *ListenConfig) ListenContext(ctx context.Context) (listener *nethernet.L
 		return nil, 0, fmt.Errorf("ListenContext: %v", err)
 	}
 
+	// 拼房间日志标识:备注(房间号);无备注则退化为房间号。
+	logName := fmt.Sprintf("%d", roomID)
+	if l.RoomLogName != "" {
+		logName = fmt.Sprintf("%s(%d)", l.RoomLogName, roomID)
+	}
+
 	// Connect to websocket signaling server
 	wsConnection, err := signaling.Dialer{
 		Authenticator: l.Authenticator,
 		RefreshTime:   l.RoomRefreshTime,
 		NetherNetID:   l.serverNetherID,
+		Reconnect:     l.RoomReconnect,
+		LogName:       logName,
 	}.DialContext(
 		ctx,
 		tanLobbyCreateResp.SignalingServerAddress,
@@ -289,7 +298,10 @@ func (l *ListenConfig) ListenContext(ctx context.Context) (listener *nethernet.L
 	}
 
 	// Init listen config
+	settingEngine := webrtc.SettingEngine{}
+	settingEngine.LoggerFactory = nethernet.NewSlogLoggerFactory()
 	listenConfig := nethernet.ListenConfig{
+		API: webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine)),
 		ConnContext: func(parent context.Context, conn *nethernet.Conn) context.Context {
 			ctx, cancel := context.WithTimeout(parent, time.Second*30)
 			go func() {
